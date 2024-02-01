@@ -182,7 +182,12 @@ def cache(
             except Exception:
                 logger.warning(f"Error setting cache key '{cache_key}' in backend:", exc_info=True)
 
-            response.headers["Cache-Control"] = f"max-age={expire}"
+            cache_control_max_age = 0
+            if client_max_age and isinstance(client_max_age, int):
+                cache_control_max_age = client_max_age
+            elif client_max_age and isinstance(client_max_age, str) and client_max_age == "ttl":
+                cache_control_max_age = expire
+            response.headers["Cache-Control"] = f"max-age={cache_control_max_age}"
             etag = f"W/{hash(encoded_ret)}"
             response.headers["ETag"] = etag
             return ret
