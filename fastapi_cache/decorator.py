@@ -27,6 +27,7 @@ def cache(
     coder: Optional[Type[Coder]] = None,
     key_builder: Optional[Callable[..., Any]] = None,
     namespace: Optional[str] = "",
+    client_max_age: Optional[int | str] = 0,
 ) -> Callable[[Callable[P, Awaitable[R]]], Callable[P, Awaitable[R]]]:
     """
     cache all function
@@ -152,9 +153,16 @@ def cache(
                 return await ensure_async_func(request, *args, **kwargs)
 
             if_none_match = request.headers.get("if-none-match")
+            
+            cache_control_max_age = 0
+            if client_max_age and isinstance(client_max_age, int):
+                cache_control_max_age = client_max_age
+            elif client_max_age and isinstance(client_max_age, str) and client_max_age == "ttl":
+                cache_control_max_age = ttl
+
             if ret is not None:
                 if response:
-                    response.headers["Cache-Control"] = f"max-age={ttl}"
+                    response.headers["Cache-Control"] = f"max-age={cache_control_max_age}"
                     etag = f"W/{hash(ret)}"
                     if if_none_match == etag:
                         response.status_code = 304
